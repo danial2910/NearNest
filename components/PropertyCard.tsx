@@ -10,7 +10,7 @@ export default function PropertyCard({
   property,
   onPress,
   onToggleSave,
-  isSaved = true,
+  isSaved = false,
   showSave = true,
 }: {
   property: Property;
