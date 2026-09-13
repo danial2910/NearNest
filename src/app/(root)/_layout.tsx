@@ -1,5 +1,5 @@
 import { useAuth } from "@clerk/expo";
-import { Redirect, Slot } from "expo-router";
+import { Redirect, Stack } from "expo-router";
 import { useUserSync } from "../../../hooks/useUserSync";
 
 export default function RootGroupLayout() {
@@ -14,6 +14,8 @@ export default function RootGroupLayout() {
   if (!isSignedIn) {
     return <Redirect href="/sign-in" />;
   }
-  
-  return <Slot />;
+
+  // Property screens draw their own floating headers, so the native header
+  // stays hidden; the Stack still provides edge-swipe / predictive back.
+  return <Stack screenOptions={{ headerShown: false }} />;
 }

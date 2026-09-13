@@ -1,4 +1,4 @@
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -17,10 +17,56 @@ import { Ionicons } from "@expo/vector-icons";
 import FilterModal from "../../../../components/FilterModal";
 import { formatPrice } from "../../../../lib/utils";
 import { supabase } from "../../../../lib/supabase";
+import { colors, shadows } from "../../../../lib/theme";
 import PropertyCard from "../../../../components/PropertyCard";
 
 const TABLET_MIN_WIDTH = 768;
 const SEARCH_DEBOUNCE_MS = 300;
+
+function FilterChip({
+  icon,
+  label,
+  removeLabel,
+  onRemove,
+}: {
+  icon?: keyof typeof Ionicons.glyphMap;
+  label: string;
+  removeLabel: string;
+  onRemove: () => void;
+}) {
+  // The whole chip is the remove target so it clears the 44pt minimum.
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={removeLabel}
+      onPress={onRemove}
+      className="min-h-11 flex-row items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 active:opacity-60"
+    >
+      {icon && (
+        <Ionicons
+          name={icon}
+          size={12}
+          color={colors.primary}
+          accessibilityElementsHidden
+          importantForAccessibility="no"
+        />
+      )}
+      <Text className="font-rubik-semibold text-xs capitalize text-primary">
+        {label}
+      </Text>
+      <Ionicons name="close" size={14} color={colors.primary} />
+    </Pressable>
+  );
+}
+
+function getPriceLabel(minPrice: number | null, maxPrice: number | null) {
+  if (minPrice != null && maxPrice != null) {
+    return `${formatPrice(minPrice)} – ${formatPrice(maxPrice)}`;
+  }
+  if (minPrice != null) return `From ${formatPrice(minPrice)}`;
+  if (maxPrice != null) return `Up to ${formatPrice(maxPrice)}`;
+  return null;
+}
 
 export default function SearchScreen() {
   const [results, setResults] = useState<Property[]>([]);
@@ -32,6 +78,7 @@ export default function SearchScreen() {
   const { width } = useWindowDimensions();
   const numColumns = width >= TABLET_MIN_WIDTH ? 2 : 1;
 
+  const router = useRouter();
   const { openFilters } = useLocalSearchParams<{ openFilters?: string }>();
 
   const {
@@ -121,13 +168,22 @@ export default function SearchScreen() {
     fetchResult({ silent: true });
   }, [fetchResult]);
 
+  const openProperty = useCallback(
+    (property: Property) =>
+      router.push({
+        pathname: "/(root)/property/[id]",
+        params: { id: property.id },
+      }),
+    [router],
+  );
+
   const renderItem = useCallback(
     ({ item }: { item: Property }) => (
       <View style={{ flex: 1 / numColumns }}>
-        <PropertyCard property={item} />
+        <PropertyCard property={item} onPress={openProperty} />
       </View>
     ),
-    [numColumns],
+    [numColumns, openProperty],
   );
 
   const clearPrice = useCallback(() => {
@@ -135,42 +191,36 @@ export default function SearchScreen() {
     setMaxPrice(null);
   }, [setMinPrice, setMaxPrice]);
 
-  const priceLabel =
-    minPrice != null && maxPrice != null
-      ? `${formatPrice(minPrice)} – ${formatPrice(maxPrice)}`
-      : minPrice != null
-        ? `From ${formatPrice(minPrice)}`
-        : `Up to ${formatPrice(maxPrice!)}`;
+  const priceLabel = getPriceLabel(minPrice, maxPrice);
+  const hasResults = results.length > 0;
 
-  const ListEmpty = () => {
-    if (loading) {
-      return (
-        <View className="items-center py-20">
-          <ActivityIndicator size="large" color="#0E4D92" />
-        </View>
-      );
-    }
-
-    if (error) {
-      return (
-        <View className="items-center gap-3 px-8 py-20">
-          <Ionicons name="cloud-offline-outline" size={48} color="#A3A3A3" />
-          <Text className="text-center text-base text-neutral-600">{error}</Text>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Try again"
-            onPress={() => fetchResult()}
-            className="mt-1 h-11 justify-center rounded-xl bg-primary px-5 active:opacity-80"
-          >
-            <Text className="font-rubik-semibold text-white">Try again</Text>
-          </Pressable>
-        </View>
-      );
-    }
-
-    return (
+  // Rendered as an element, not an inline component, so it does not remount
+  // (and restart the spinner) on every render.
+  let emptyState;
+  if (loading) {
+    emptyState = (
       <View className="items-center py-20">
-        <Ionicons name="search-outline" size={48} color="#A3A3A3" />
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  } else if (error) {
+    emptyState = (
+      <View className="items-center gap-3 px-8 py-20">
+        <Ionicons name="cloud-offline-outline" size={48} color={colors.emptyIcon} />
+        <Text className="text-center text-base text-neutral-600">{error}</Text>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => fetchResult()}
+          className="mt-1 h-11 justify-center rounded-xl bg-primary px-5 active:opacity-80"
+        >
+          <Text className="font-rubik-semibold text-white">Try again</Text>
+        </Pressable>
+      </View>
+    );
+  } else {
+    emptyState = (
+      <View className="items-center py-20">
+        <Ionicons name="search-outline" size={48} color={colors.emptyIcon} />
         <Text className="font-rubik-semibold mt-4 text-base text-neutral-700">
           No properties found
         </Text>
@@ -179,7 +229,7 @@ export default function SearchScreen() {
         </Text>
       </View>
     );
-  };
+  }
 
   return (
     <SafeAreaView edges={["top"]} className="flex-1 bg-neutral-50">
@@ -195,27 +245,21 @@ export default function SearchScreen() {
       {/* Search + filter */}
       <View className="flex-row items-center gap-3 px-5">
         <View
-          className="h-12 flex-1 flex-row items-center gap-3 rounded-2xl bg-white px-4"
-          style={{
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 1 },
-            shadowOpacity: 0.06,
-            shadowRadius: 6,
-            elevation: 2,
-          }}
+          className="min-h-12 flex-1 flex-row items-center gap-3 rounded-2xl bg-white px-4"
+          style={shadows.control}
         >
           <Ionicons
             name="search-outline"
             size={18}
-            color="#9CA3AF"
+            color={colors.iconSubtle}
             accessibilityElementsHidden
             importantForAccessibility="no"
           />
           <TextInput
-            className="flex-1 text-base text-neutral-800"
+            className="flex-1 py-3 text-base text-neutral-800"
             accessibilityLabel="Search by title or city"
             placeholder="Search by title or city"
-            placeholderTextColor="#6B7280"
+            placeholderTextColor={colors.icon}
             value={search}
             onChangeText={setSearch}
             autoCapitalize="none"
@@ -227,11 +271,11 @@ export default function SearchScreen() {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Clear search"
-              hitSlop={12}
+              hitSlop={13}
               onPress={() => setSearch("")}
               className="active:opacity-60"
             >
-              <Ionicons name="close-circle" size={18} color="#9CA3AF" />
+              <Ionicons name="close-circle" size={18} color={colors.iconSubtle} />
             </Pressable>
           )}
         </View>
@@ -247,22 +291,23 @@ export default function SearchScreen() {
           className={`h-12 w-12 items-center justify-center rounded-2xl active:opacity-80 ${
             activeFilterCount > 0 ? "bg-primary" : "bg-white"
           }`}
-          style={{
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 1 },
-            shadowOpacity: 0.06,
-            shadowRadius: 6,
-            elevation: 2,
-          }}
+          style={shadows.control}
         >
           <Ionicons
             name="options-outline"
             size={20}
-            color={activeFilterCount > 0 ? "#fff" : "#374151"}
+            color={activeFilterCount > 0 ? colors.white : colors.textMuted}
           />
           {activeFilterCount > 0 && (
-            <View className="absolute -right-1 -top-1 h-4 w-4 items-center justify-center rounded-full bg-red-500">
-              <Text className="font-rubik-bold text-[10px] text-white">
+            <View
+              className="absolute -right-1 -top-1 min-h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1"
+              accessibilityElementsHidden
+              importantForAccessibility="no"
+            >
+              <Text
+                maxFontSizeMultiplier={1.4}
+                className="font-rubik-bold text-[10px] text-white"
+              >
                 {activeFilterCount}
               </Text>
             </View>
@@ -274,71 +319,52 @@ export default function SearchScreen() {
       {activeFilterCount > 0 && (
         <View className="mt-3 flex-row flex-wrap gap-2 px-5">
           {type && (
-            <View className="flex-row items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-3 py-1">
-              <Text className="font-rubik-semibold text-xs capitalize text-primary">
-                {type}
-              </Text>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`Remove ${type} filter`}
-                hitSlop={10}
-                onPress={() => setType(null)}
-                className="active:opacity-60"
-              >
-                <Ionicons name="close" size={14} color="#0E4D92" />
-              </Pressable>
-            </View>
+            <FilterChip
+              label={type}
+              removeLabel={`Remove ${type} filter`}
+              onRemove={() => setType(null)}
+            />
           )}
 
           {bedrooms != null && (
-            <View className="flex-row items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-3 py-1">
-              <Ionicons
-                name="bed-outline"
-                size={12}
-                color="#0E4D92"
-                accessibilityElementsHidden
-                importantForAccessibility="no"
-              />
-              <Text className="font-rubik-semibold text-xs text-primary">
-                {bedrooms >= 4
-                  ? "4+ beds"
-                  : `${bedrooms} bed${bedrooms > 1 ? "s" : ""}`}
-              </Text>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Remove bedrooms filter"
-                hitSlop={10}
-                onPress={() => setBedrooms(null)}
-                className="active:opacity-60"
-              >
-                <Ionicons name="close" size={14} color="#0E4D92" />
-              </Pressable>
-            </View>
+            <FilterChip
+              icon="bed-outline"
+              label={
+                bedrooms >= 4 ? "4+ beds" : `${bedrooms} bed${bedrooms > 1 ? "s" : ""}`
+              }
+              removeLabel="Remove bedrooms filter"
+              onRemove={() => setBedrooms(null)}
+            />
           )}
 
-          {(minPrice != null || maxPrice != null) && (
-            <View className="flex-row items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-3 py-1">
-              <Ionicons
-                name="pricetag-outline"
-                size={12}
-                color="#0E4D92"
-                accessibilityElementsHidden
-                importantForAccessibility="no"
-              />
-              <Text className="font-rubik-semibold text-xs text-primary">
-                {priceLabel}
-              </Text>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Remove price filter"
-                hitSlop={10}
-                onPress={clearPrice}
-                className="active:opacity-60"
-              >
-                <Ionicons name="close" size={14} color="#0E4D92" />
-              </Pressable>
-            </View>
+          {priceLabel && (
+            <FilterChip
+              icon="pricetag-outline"
+              label={priceLabel}
+              removeLabel="Remove price filter"
+              onRemove={clearPrice}
+            />
           )}
+        </View>
+      )}
+
+      {/* Refresh failures while stale results are showing */}
+      {error && hasResults && (
+        <View
+          accessibilityRole="alert"
+          className="mx-5 mt-3 flex-row items-center gap-3 rounded-2xl border border-red-100 bg-red-50 px-4 py-3"
+        >
+          <Ionicons name="cloud-offline-outline" size={18} color={colors.danger} />
+          <Text className="flex-1 text-sm text-red-700">
+            Showing earlier results. {error}
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => fetchResult()}
+            className="min-h-11 justify-center active:opacity-60"
+          >
+            <Text className="font-rubik-semibold text-sm text-red-700">Retry</Text>
+          </Pressable>
         </View>
       )}
 
@@ -364,13 +390,13 @@ export default function SearchScreen() {
               : `${results.length} ${results.length === 1 ? "property" : "properties"} found`}
           </Text>
         }
-        ListEmptyComponent={ListEmpty}
+        ListEmptyComponent={emptyState}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#0E4D92"
-            colors={["#0E4D92"]}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
           />
         }
       />
