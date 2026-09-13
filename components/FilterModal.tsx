@@ -12,6 +12,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PropertyType, useFilterStore } from "../store/filterStore";
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
+import { colors, shadows } from "../lib/theme";
+
+// Pasted values like "5,000" or "$5000" would become NaN; keep digits only.
+const digitsOnly = (text: string) => text.replace(/\D/g, "");
 
 const TYPES: { label: string; value: PropertyType }[] = [
   { label: "All", value: null },
@@ -84,16 +88,14 @@ export default function FilterModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
-  const shadow = {
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
-  };
+  const shadow = shadows.subtle;
 
   const draftMin = localMin ? Number(localMin) : null;
   const draftMax = localMax ? Number(localMax) : null;
+  const priceError =
+    draftMin != null && draftMax != null && draftMin > draftMax
+      ? "Min price must be less than max price."
+      : null;
 
   const activeCount = [draftType, draftBedrooms, draftMin, draftMax].filter(
     (v) => v !== null,
@@ -141,7 +143,7 @@ export default function FilterModal({
             onPress={onClose}
             className="h-11 w-11 items-center justify-center -ml-2 active:opacity-60"
           >
-            <Ionicons name="close" size={22} color="#374151" />
+            <Ionicons name="close" size={22} color={colors.textMuted} />
           </Pressable>
 
           <Text
@@ -255,38 +257,50 @@ export default function FilterModal({
             {[
               {
                 label: "Min Price",
+                a11yLabel: "Minimum price in dollars",
                 value: localMin,
                 onChange: setLocalMin,
                 placeholder: "0",
               },
               {
                 label: "Max Price",
+                a11yLabel: "Maximum price in dollars",
                 value: localMax,
                 onChange: setLocalMax,
                 placeholder: "Any",
               },
-            ].map(({ label, value, onChange, placeholder }) => (
+            ].map(({ label, a11yLabel, value, onChange, placeholder }) => (
               <View key={label} className="flex-1">
                 <Text className="font-rubik-medium mb-1.5 text-xs text-neutral-500">
                   {label}
                 </Text>
                 <View
-                  className="h-12 flex-row items-center rounded-2xl border border-neutral-200 bg-white px-3"
+                  className={`min-h-12 flex-row items-center rounded-2xl border bg-white px-3 ${
+                    priceError ? "border-red-300" : "border-neutral-200"
+                  }`}
                   style={shadow}
                 >
                   <Text className="mr-1 text-sm text-neutral-500">$</Text>
                   <TextInput
-                    className="flex-1 py-3 text-gray-800"
+                    className="flex-1 py-3 text-neutral-800"
+                    accessibilityLabel={a11yLabel}
                     placeholder={placeholder}
-                    placeholderTextColor="#9CA3AF"
-                    keyboardType="numeric"
+                    placeholderTextColor={colors.icon}
+                    keyboardType="number-pad"
+                    inputMode="numeric"
                     value={value}
-                    onChangeText={onChange}
+                    onChangeText={(text) => onChange(digitsOnly(text))}
                   />
                 </View>
               </View>
             ))}
           </View>
+
+          {priceError && (
+            <Text accessibilityRole="alert" className="mb-3 text-sm text-red-600">
+              {priceError}
+            </Text>
+          )}
 
           <View className="flex-row flex-wrap gap-2">
             {PRICE_PRESETS.map((p) => {
@@ -298,7 +312,7 @@ export default function FilterModal({
                   accessibilityState={{ selected: active }}
                   accessibilityLabel={`Price ${p.label}`}
                   onPress={() => applyPreset(p.min, p.max)}
-                  className={`rounded-full border px-3 py-2 active:opacity-80 ${
+                  className={`min-h-11 justify-center rounded-full border px-3 active:opacity-80 ${
                     active
                       ? "border-primary bg-primary/10"
                       : "border-neutral-200 bg-white"
@@ -328,15 +342,13 @@ export default function FilterModal({
                 ? `Apply ${activeCount} filters`
                 : "Apply filters"
             }
+            accessibilityState={{ disabled: !!priceError }}
+            disabled={!!priceError}
             onPress={handleApply}
-            className="h-14 items-center justify-center rounded-2xl bg-primary active:opacity-90"
-            style={{
-              shadowColor: "#0E4D92",
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.25,
-              shadowRadius: 8,
-              elevation: 4,
-            }}
+            className={`h-14 items-center justify-center rounded-2xl bg-primary active:opacity-90 ${
+              priceError ? "opacity-40" : ""
+            }`}
+            style={priceError ? undefined : shadows.primaryButton}
           >
             <Text className="font-rubik-bold text-base text-white">
               Apply Filters{activeCount > 0 ? ` (${activeCount})` : ""}
