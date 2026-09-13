@@ -4,22 +4,21 @@ import { Property } from "../types";
 import { Ionicons } from "@expo/vector-icons";
 import { formatPrice } from "../lib/utils";
 import { colors, shadows } from "../lib/theme";
+import { useSavedProperty } from "../hooks/useSavedProperty";
 
 const BLURHASH = "L6PZfSi_.AyE_3t7t7R**0o#DgR4";
 
 export default function PropertyCard({
   property,
   onPress,
-  onToggleSave,
-  isSaved = false,
-  // Off by default: a heart with no handler is a dead control.
+  // Off by default so lists that don't show the heart skip the saved lookup.
   showSave = false,
+  onUnsave,
 }: {
   property: Property;
   onPress?: (property: Property) => void;
-  onToggleSave?: (property: Property) => void;
-  isSaved?: boolean;
   showSave?: boolean;
+  onUnsave?: () => void; 
 }) {
   const label = [
     property.title,
@@ -32,7 +31,12 @@ export default function PropertyCard({
     .filter(Boolean)
     .join(", ");
 
-  const canSave = showSave && !!onToggleSave;
+  // An empty id makes the hook skip its query, so search/home cards don't
+  // each fire a saved_properties request.
+  const { isSaved, saveLoading, toggleSave } = useSavedProperty(
+    showSave ? property.id : "",
+    onUnsave,
+  );
 
   return (
     // The save button is a sibling of the card button, never nested inside it,
@@ -120,14 +124,15 @@ export default function PropertyCard({
         </View>
       </Pressable>
 
-      {canSave && (
+      {showSave && (
         <Pressable
+          onPress={toggleSave}
+          disabled={saveLoading}
           accessibilityRole="button"
           accessibilityState={{ selected: isSaved }}
           accessibilityLabel={
             isSaved ? `Remove ${property.title} from saved` : `Save ${property.title}`
           }
-          onPress={() => onToggleSave?.(property)}
           className="absolute right-3 top-3 h-11 w-11 items-center justify-center rounded-full bg-white/90 active:opacity-70"
         >
           <Ionicons
