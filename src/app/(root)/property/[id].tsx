@@ -25,8 +25,8 @@ import { supabase } from "../../../../lib/supabase";
 import { useSavedProperty } from "../../../../hooks/useSavedProperty";
 import { formatPrice } from "../../../../lib/utils";
 import { colors, shadows } from "../../../../lib/theme";
+import { SUPPORT_PHONE_DISPLAY, whatsappUrl } from "../../../../lib/contact";
 
-const ADMIN_PHONE = "0194732003";
 const GALLERY_HEIGHT = 320;
 const DESCRIPTION_PREVIEW = 150;
 const BLURHASH = "L6PZfSi_.AyE_3t7t7R**0o#DgR4";
@@ -142,11 +142,11 @@ export default function PropertyDetails() {
 
   const handleContact = async () => {
     const message = `Hello there! I am interested in this property: ${property.title}`;
-    const url = `https://wa.me/${ADMIN_PHONE}?text=${encodeURIComponent(message)}`;
+    const url = whatsappUrl(message);
     try {
       await Linking.openURL(url);
     } catch {
-      Alert.alert("Could not open WhatsApp", `You can reach the agent at ${ADMIN_PHONE}.`);
+      Alert.alert("Could not open WhatsApp", `You can reach the agent at ${SUPPORT_PHONE_DISPLAY}.`);
     }
   };
 
