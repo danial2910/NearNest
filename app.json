@@ -26,6 +26,11 @@
     "plugins": [
       "expo-router",
       [
+        "expo-location",{
+          "locationWhenInUsePermission": "Allow NearNest to access your location to tag property coordinates."
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "backgroundColor": "#208AEF",

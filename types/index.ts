@@ -12,6 +12,7 @@ export interface Property{
     latitude: number;
     longitude: number;
     images: string[];
+    localImages: string[];
     is_featured: boolean;
     is_sold: boolean;
     created_at: string;
