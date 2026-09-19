@@ -98,13 +98,22 @@ export default function HomeScreen() {
         [router],
     );
 
+    const openProperty = useCallback(
+        (property: Property) =>
+            router.push({
+                pathname: '/(root)/property/[id]',
+                params: { id: property.id },
+            }),
+        [router],
+    );
+
     const renderItem = useCallback(
         ({ item }: { item: Property }) => (
             <View style={{ flex: 1 / numColumns }}>
-                <PropertyCard property={item} />
+                <PropertyCard property={item} onPress={openProperty} />
             </View>
         ),
-        [numColumns],
+        [numColumns, openProperty],
     );
 
     const ListHeader = (
@@ -204,7 +213,9 @@ export default function HomeScreen() {
                         <FlatList
                             data={featured}
                             keyExtractor={(item) => item.id}
-                            renderItem={({ item }) => <FeaturedCard property={item} />}
+                            renderItem={({ item }) => (
+                                <FeaturedCard property={item} onPress={openProperty} />
+                            )}
                             horizontal
                             showsHorizontalScrollIndicator={false}
                             contentContainerStyle={{ paddingHorizontal: 20 }}

@@ -11,7 +11,6 @@ export default function FeaturedCard({
   onPress,
 }: {
   property: Property;
-  // TODO: wire to the property detail route once that screen exists.
   onPress?: (property: Property) => void;
 }) {
   const label = [
