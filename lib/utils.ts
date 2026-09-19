@@ -1,11 +1,11 @@
 export const formatPrice = (price: number): string => {
     if (price >= 1000000) {
-        return `$${(price / 1000000).toFixed(1)}M`;
+        return `RM${(price / 1000000).toFixed(1)}M`;
     } else if (price >= 1000) {
-        return `$${(price / 1000).toFixed(1)}K`;
+        return `RM${(price / 1000).toFixed(1)}K`;
     }
 
-    return `$${price}`;
+    return `RM${price}`;
 }
 
 export const greetingFor = (date: Date): string => {

@@ -14,7 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
 import { colors, shadows } from "../lib/theme";
 
-// Pasted values like "5,000" or "$5000" would become NaN; keep digits only.
+// Pasted values like "5,000" or "RM5000" would become NaN; keep digits only.
 const digitsOnly = (text: string) => text.replace(/\D/g, "");
 
 const TYPES: { label: string; value: PropertyType }[] = [
@@ -34,10 +34,10 @@ const BEDS = [
 ];
 
 const PRICE_PRESETS = [
-  { label: "Under $5M", min: null, max: 5000000 },
-  { label: "$5M – $10M", min: 5000000, max: 10000000 },
-  { label: "$10M – $20M", min: 10000000, max: 20000000 },
-  { label: "Above $20M", min: 20000000, max: null },
+  { label: "Under RM5M", min: null, max: 5000000 },
+  { label: "RM5M – RM10M", min: 5000000, max: 10000000 },
+  { label: "RM10M – RM20M", min: 10000000, max: 20000000 },
+  { label: "Above RM20M", min: 20000000, max: null },
 ];
 
 const chip = (active: boolean) =>
@@ -250,21 +250,21 @@ export default function FilterModal({
             accessibilityRole="header"
             className="font-rubik-bold mb-3 text-base text-neutral-800"
           >
-            Price Range ($)
+            Price Range (MYR)
           </Text>
 
           <View className="mb-3 flex-row gap-3">
             {[
               {
                 label: "Min Price",
-                a11yLabel: "Minimum price in dollars",
+                a11yLabel: "Minimum price in ringgit",
                 value: localMin,
                 onChange: setLocalMin,
                 placeholder: "0",
               },
               {
                 label: "Max Price",
-                a11yLabel: "Maximum price in dollars",
+                a11yLabel: "Maximum price in ringgit",
                 value: localMax,
                 onChange: setLocalMax,
                 placeholder: "Any",
@@ -280,7 +280,7 @@ export default function FilterModal({
                   }`}
                   style={shadow}
                 >
-                  <Text className="mr-1 text-sm text-neutral-500">$</Text>
+                  <Text className="mr-1 text-sm text-neutral-500">RM</Text>
                   <TextInput
                     className="flex-1 py-3 text-neutral-800"
                     accessibilityLabel={a11yLabel}

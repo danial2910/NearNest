@@ -489,14 +489,14 @@ export default function CreateScreen() {
             </View>
 
             <View className={sectionClass} onLayout={trackOffset("price")}>
-              <Text className={labelClass}>Price ($)</Text>
+              <Text className={labelClass}>Price (MYR)</Text>
               <TextInput
                 className={errors.price ? inputErrorClass : inputClass}
                 placeholder="e.g. 3500000"
                 placeholderTextColor={MUTED}
                 value={form.price}
                 onChangeText={(v) => setField("price", v)}
-                accessibilityLabel="Price in dollars"
+                accessibilityLabel="Price in ringgit"
                 keyboardType="number-pad"
               />
               {errors.price ? (
